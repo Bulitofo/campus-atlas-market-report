@@ -1,3 +1,4 @@
+import {outline} from './us-outline.mjs';
 import {loadSales,fixedAnalysis,questions,median,profiles} from './analysis.mjs';
 const $=id=>document.getElementById(id);
 const money=x=>x==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(x);
@@ -33,7 +34,7 @@ function renderFixed(db){
   let win=extreme(cities,'price');
   fill(1,win.names+' has the highest median sale price at '+money(win.v)+'.',chart(sorted(cities,'price'),'price',money,'Median sale price by city · US dollars',win.v));
   win=extreme(cmp,'gap');const biggest=cmp.find(r=>r.gap===win.v);
-  fill(2,win.names+' has the largest gap. Its mean of '+money(biggest.mean)+' is '+pct(win.v)+' above its median of '+money(biggest.price)+'. A small group of very high sales pulls the mean upward. The median depends on the middle sales.',chart(sorted(cmp,'gap'),'gap',pct,'Mean above median · percent of median',win.v)+table(['City','Mean','Median'],sorted(cmp,'gap').map(r=>[r.name,money(r.mean),money(r.price)])));
+  fill(2,win.names+' has the largest gap. Its mean of '+money(biggest.mean)+' is '+pct(win.v)+' above its median of '+money(biggest.price)+'. A small group of very high sales pulls the mean upward. The median depends on the middle sales.',pricePairs(sorted(cmp,'gap'),biggest.name));
   const moves=cmp.filter(r=>r.rawRank!==r.cleanRank);
   fill(3,moves.map(r=>r.name+' moves '+(r.cleanRank<r.rawRank?'up ':'down ')+Math.abs(r.cleanRank-r.rawRank)+' ('+r.rawRank+' to '+r.cleanRank+')').join('. ')+'. All other cities keep their ranks.',rankChart(cmp));
   const gain=extreme(campuses,'change'),loss=campuses.filter(c=>c.change<0);
@@ -42,6 +43,10 @@ function renderFixed(db){
   fill(5,'Fastest: '+fast.names+' ('+num(fast.v)+' days). Slowest: '+slow.names+' ('+num(slow.v)+' days).',chart(sorted(campuses,'days'),'days',num,'Median days from listing to contract · days',fast.v));
   const high=extreme(campuses,'tax'),low=extreme(campuses,'tax','min');
   fill(6,'Highest: '+high.names+' ('+high.v.toFixed(2)+'%). Lowest: '+low.names+' ('+low.v.toFixed(2)+'%).',chart(sorted(campuses,'tax'),'tax',v=>v.toFixed(2)+'%','Total annual tax divided by total sale price · percent',high.v));
+}
+function pricePairs(rows,winner){
+ const maximum=Math.max(...rows.flatMap(r=>[r.mean,r.price]));
+ return '<figure><figcaption>Mean and median sale price by city · US dollars</figcaption><div class="pair-legend"><span>Mean</span><span>Median</span></div>'+rows.map(r=>'<div class="duo '+(r.name===winner?'lead':'')+'"><strong>'+safe(r.name)+'</strong><div><i style="width:'+100*r.mean/maximum+'%"></i><i style="width:'+100*r.price/maximum+'%"></i></div><span>'+money(r.mean)+'<br>'+money(r.price)+'</span></div>').join('')+'</figure>';
 }
 function rankChart(data){
   const rows=[...data].sort((a,b)=>a.rawRank-b.rawRank);
@@ -88,8 +93,9 @@ function mapOf(campuses,active){
  const px=lon=>(lon+125)*8.8+16,py=lat=>(50-lat)*11+8;
  const yLine=lat=>'<path class="grid" d="M8 '+py(lat)+'H565"/><text x="8" y="'+(py(lat)-3)+'">'+lat+'°N</text>';
  const xLine=lon=>'<path class="grid" d="M'+px(lon)+' 8V281"/><text x="'+(px(lon)+2)+'" y="279">'+Math.abs(lon)+'°W</text>';
+ const land='<path class="land" d="'+outline.map(([lon,lat],i)=>(i?'L':'M')+px(lon).toFixed(1)+' '+py(lat).toFixed(1)).join(' ')+'Z"/>';
  const pts=campuses.map(c=>'<g class="pin '+(active===c.name?'picked':'')+'" role="button" tabindex="0" aria-label="'+safe(display(c.name))+'" data-campus="'+safe(c.name)+'"><title>'+safe(display(c.name))+'</title><circle class="hit" cx="'+px(c.lon)+'" cy="'+py(c.lat)+'" r="12"/><circle cx="'+px(c.lon)+'" cy="'+py(c.lat)+'" r="5"/></g>').join('');
- return '<svg role="group" aria-label="Interactive map of US campus areas" viewBox="0 0 575 286">'+[30,35,40,45].map(yLine).join('')+[-120,-105,-90,-75].map(xLine).join('')+pts+'</svg><div class="mapkey">'+campuses.map(c=>'<button data-campus="'+safe(c.name)+'" aria-pressed="'+(c.name===active)+'">'+safe(display(c.name))+'</button>').join('')+'</div>';
+ return '<svg role="group" aria-label="Interactive map of US campus areas" viewBox="0 0 575 286">'+land+[30,35,40,45].map(yLine).join('')+[-120,-105,-90,-75].map(xLine).join('')+pts+'</svg><div class="mapkey">'+campuses.map(c=>'<button data-campus="'+safe(c.name)+'" aria-pressed="'+(c.name===active)+'">'+safe(display(c.name))+'</button>').join('')+'</div>';
 }
 function cityTable(rows){
  const keys=[['name','City'],['n','Sales'],['price','Median price'],['days','Median days']];
