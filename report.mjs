@@ -20,7 +20,8 @@ function control(id,label,values,initial,attrs=''){
 function table(head,rows){return '<table><thead><tr>'+head.map(h=>'<th scope="col">'+safe(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map((v,i)=>i===0?'<th scope="row">'+safe(v)+'</th>':'<td>'+safe(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
 function chart(rows,key,fmt,axis,win,extra){
   const max=Math.max(1,...rows.map(r=>Math.abs(r[key]||0)));
-  return '<figure><figcaption>'+safe(axis)+'</figcaption>'+rows.map(r=>'<div class="barrow"><span>'+safe(display(r.name))+'</span><span class="track"><i class="'+(r[key]===win?'winner ':'')+(r[key]<0?'negative':'')+'" style="width:'+Math.abs((r[key]||0)/max)*100+'%"></i></span><b>'+safe(r[key]===null?'—':fmt(r[key]))+(extra?'<small>'+safe(extra(r))+'</small>':'')+'</b></div>').join('')+'</figure>';
+  const signed=rows.some(r=>Number.isFinite(r[key]) && r[key]<0);
+  return '<figure class="'+(signed?'signed':'')+'"><figcaption>'+safe(axis)+'</figcaption>'+rows.map(r=>'<div class="barrow"><span>'+safe(display(r.name))+'</span><span class="track"><i class="'+(r[key]===win?'winner ':'')+(r[key]<0?'negative':'')+'" style="width:'+Math.abs((r[key]||0)/max)*(signed?50:100)+'%"></i></span><b>'+safe(r[key]===null?'—':fmt(r[key]))+(extra?'<small>'+safe(extra(r))+'</small>':'')+'</b></div>').join('')+'</figure>';
 }
 function section(parent,id,title,controls=''){
   const a=document.createElement('article');a.id='q'+id;
@@ -69,12 +70,12 @@ function renderScenarios(all,db,names){
  const r=questions(all,db.valid,s,names);
  const cheapest=extreme(r.bed,'price','min'),quick=extreme(r.budget,'days','min');
  fill(7,cheapest.names?cheapest.names+' has the lowest median price for '+s.beds+' bedrooms: '+money(cheapest.v)+'.':'No sales match this bedroom count.',chart(sorted(r.bed,'price'),'price',money,'Median price · exact bedroom count',cheapest.v,c=>num(c.n)+' sales'));
- fill(8,quick.names?quick.names+' has the shortest median time: '+num(quick.v)+' days. Counts include sales with both dates.':'No sales with both dates match this range.',chart(sorted(r.budget,'days'),'days',num,'Median days on market · selected price range',quick.v,c=>num(c.n)+' sales'));
+ fill(8,quick.names?'Shortest median time: '+quick.names+' · '+num(quick.v)+' days. Counts include sales with both dates.':'No sales with both dates match this range.',chart(sorted(r.budget,'days'),'days',num,'Median days on market · selected price range',quick.v,c=>num(c.n)+' sales'));
  const top=Math.max(...r.months),namesM=months.filter((m,i)=>r.months[i]===top);
  fill(9,top?namesM.join(', ')+' recorded the most sales in '+s.city+' in '+s.year+' ('+num(top)+').':'No dated sales for this city and year.',monthChart(r.months));
  const bins=[0,1,3,5,10], labels=['0–1','>1–3','>3–5','>5–10','>10'];
  const dist=bins.map((_,i)=>({name:labels[i]+' mi',n:r.near.filter(x=>(i===0||x.miles>bins[i])&&(i===4||x.miles<=bins[i+1])).length}));
- fill(10,r.near.length?num(r.near.length)+' qualifying sales have a median distance of '+num(r.distance)+' miles from campus.':'No home sales meet these conditions.',chart(dist,'n',num,'Distance to campus · number of qualifying sales',null));
+ fill(10,r.near.length?num(r.near.length)+' qualifying sales have a median distance of '+num(r.distance)+' miles from campus.':'No home sales meet these conditions.',(r.distance===null?'':'<figure class="distance-gauge"><figcaption>Median distance to campus · miles</figcaption><div class="ruler"><i style="left:'+Math.min(100,r.distance/16*100)+'%"></i></div><div class="ends"><span>0 mi</span><b>'+num(r.distance)+' mi</b><span>16 mi</span></div></figure>')+chart(dist,'n',num,'Distance to campus · number of qualifying sales',null));
 }
 function setupExplore(campuses,cities,years,beds,limit){
  const all=[['','All']];
