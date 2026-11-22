@@ -121,8 +121,14 @@ async function start(){
  const all=loadSales(await result.text()),db=fixedAnalysis(all);
  const cityNames=db.cities.map(c=>c.name).sort(),campuses=db.campuses.map(c=>c.name).sort(),years=[...new Set(all.map(r=>r.year).filter(Boolean))].sort(),beds=[...new Set(all.map(r=>r.beds))].sort((a,b)=>a-b),limit=Math.ceil(Math.max(...db.valid.map(r=>r.miles)));
  $('total').textContent=num(all.length);$('status').hidden=true;renderFixed(db);setupScenarios(cityNames,campuses,years,beds);setupExplore(campuses,cityNames,years,beds,limit);insights(all,db);
+ const lead=extreme(db.cities,'price');
+ $('hero-finding').textContent=lead.names+' leads all cities at a median of '+money(lead.v)+'.';
+ for(const article of document.querySelectorAll('#fixed article,#dynamic article')) {
+   $('jump').add(new Option(article.querySelector('.qid').textContent+' · '+article.querySelector('h3').textContent,article.id));
+ }
+ $('jump').onchange=()=>{const id=$('jump').value;if(id){location.hash=id;$(id).setAttribute('tabindex','-1');$(id).focus({preventScroll:true});}};
  const preview=()=>renderScenarios(all,db,cityNames);
- const updateURL=()=>{const url=new URL(location.href);for(const e of document.querySelectorAll('select,input[type=number]')){if(e.value)url.searchParams.set(e.id,e.value);else url.searchParams.delete(e.id);}history.replaceState(null,'',url)};
+ const updateURL=()=>{const url=new URL(location.href);for(const e of document.querySelectorAll('.controls select,.controls input[type=number]')){if(e.value)url.searchParams.set(e.id,e.value);else url.searchParams.delete(e.id);}history.replaceState(null,'',url)};
  preview();renderExplore(db);compare(db);
  $('dynamic').addEventListener('input',()=>{preview();updateURL()});
  $('filters').addEventListener('input',e=>{if(e.target.id==='slideLo')$('nearLo').value=e.target.value;if(e.target.id==='slideHi')$('nearHi').value=e.target.value;renderExplore(db);updateURL()});
